@@ -2,7 +2,7 @@ name: Jumia Scraper - Account 6 (Categories 18-+)
 
 on:
   schedule:
-    - cron: '15 3 * * *'   # 5:00 AM Egypt time
+    - cron: '12 3 * * *'
   workflow_dispatch:
     inputs:
       limit:
@@ -80,6 +80,7 @@ jobs:
 
       - name: Install Playwright browser
         run: playwright install chromium --with-deps
+        timeout-minutes: 10
 
       - name: "Scrape ${{ matrix.name }}"
         id: scrape
@@ -94,9 +95,13 @@ jobs:
         timeout-minutes: 180
 
       - name: Log blocked category
-        if: failure()
+        if: always()
         run: |
-          echo "${{ matrix.name }} | ${{ matrix.url }} | blocked/failed" >> blocked.log
+          FILE="products_${{ matrix.idx }}.json"
+          if [ ! -f "$FILE" ] || python -c "import json; d=json.load(open('$FILE')); exit(0 if len(d)==0 else 1)" 2>/dev/null; then
+            echo "${{ matrix.name }} | ${{ matrix.url }} | blocked/empty" >> blocked.log
+            echo "Category '${{ matrix.name }}' returned 0 products — logged as blocked"
+          fi
 
       - name: Upload products artifact
         if: always()
