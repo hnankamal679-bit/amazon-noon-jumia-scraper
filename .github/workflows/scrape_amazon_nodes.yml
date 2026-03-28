@@ -1,4 +1,4 @@
-name: Amazon Node Scraper - Account 6 (13 nodes)
+name: Amazon Node Scraper - Account 6 (19 nodes)
 
 on:
   workflow_dispatch:
@@ -19,6 +19,9 @@ jobs:
       max-parallel: 20
       matrix:
         include:
+          - { node_id: "21845335031",  node_name: "Cat5335031" }
+          - { node_id: "21845324031",  node_name: "Cat5324031" }
+          - { node_id: "21833212031",  node_name: "Cat3212031" }
           - { node_id: "21857925031",  node_name: "Cat7925031" }
           - { node_id: "21845419031",  node_name: "Cat5419031" }
           - { node_id: "21833220031",  node_name: "Cat3220031" }
@@ -32,6 +35,9 @@ jobs:
           - { node_id: "27360698031",  node_name: "Cat0698031" }
           - { node_id: "21857887031",  node_name: "Cat7887031" }
           - { node_id: "21826026031",  node_name: "Perfumes" }
+          - { node_id: "96581804031",   node_name: "Cat1804031" }
+          - { node_id: "18017874031",   node_name: "Agricultural Vehicle Parts & Equipment" }
+          - { node_id: "21832915031",   node_name: "Cat2915031" }
 
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +82,7 @@ jobs:
           pattern: node-*
           merge-multiple: true
 
-      - name: Merge JSON → CSV + summary
+      - name: Merge JSON -> CSV + summary
         run: |
           python - <<'EOF'
           import json, glob, csv, sys
@@ -91,7 +97,6 @@ jobs:
               except Exception as e:
                   print(f"{fname}: ERROR - {e}")
 
-          # Deduplicate by ASIN globally
           seen = set()
           unique = []
           for p in merged:

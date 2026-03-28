@@ -2,7 +2,7 @@ name: Jumia Scraper - Account 6 (Categories 18-+)
 
 on:
   schedule:
-    - cron: '12 3 * * *'
+    - cron: '9 3 * * *'
   workflow_dispatch:
     inputs:
       limit:
