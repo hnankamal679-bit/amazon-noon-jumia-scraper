@@ -19,19 +19,19 @@ jobs:
       max-parallel: 20
       matrix:
         include:
-          - { node_id: "21868934031",  node_name: "Cat8934031" }
-          - { node_id: "21832870031",  node_name: "Cat2870031" }
-          - { node_id: "21845331031",  node_name: "Cat5331031" }
-          - { node_id: "27360698031",  node_name: "Cat0698031" }
-          - { node_id: "21858001031",  node_name: "Cat8001031" }
-          - { node_id: "21820640031",  node_name: "Cat0640031" }
-          - { node_id: "21857922031",  node_name: "Cat7922031" }
-          - { node_id: "212533997031",  node_name: "Cat3997031" }
+          - { node_id: "21857925031",  node_name: "Cat7925031" }
+          - { node_id: "21845419031",  node_name: "Cat5419031" }
+          - { node_id: "21833220031",  node_name: "Cat3220031" }
+          - { node_id: "21833214031",  node_name: "Cat3214031" }
+          - { node_id: "21832887031",  node_name: "Cat2887031" }
+          - { node_id: "21845179031",  node_name: "Cat5179031" }
+          - { node_id: "21826029031",  node_name: "Cat6029031" }
+          - { node_id: "21833215031",  node_name: "Cat3215031" }
           - { node_id: "21833210031",  node_name: "Cat3210031" }
-          - { node_id: "49987963031",  node_name: "Cat7963031" }
-          - { node_id: "21833213031",  node_name: "Cat3213031" }
-          - { node_id: "21845202031",  node_name: "Cat5202031" }
-          - { node_id: "21833429031",  node_name: "Cat3429031" }
+          - { node_id: "21857944031",  node_name: "Cat7944031" }
+          - { node_id: "27360698031",  node_name: "Cat0698031" }
+          - { node_id: "21857887031",  node_name: "Cat7887031" }
+          - { node_id: "21826026031",  node_name: "Perfumes" }
 
     steps:
       - uses: actions/checkout@v4
