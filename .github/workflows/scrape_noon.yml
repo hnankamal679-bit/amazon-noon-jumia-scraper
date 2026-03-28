@@ -1,136 +1,77 @@
-name: Noon Scraper - Account 6 (Groups 34-42)
+name: Noon Scraper - Account 6 (slice 3/4)
 
 on:
-  schedule:
-    - cron: '9 2 * * *'
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Max products per group'
+        description: Max products total
         required: false
         default: '99999'
+  schedule:
+    - cron: '0 2 * * *'
 
 jobs:
   scrape:
-    name: "Scrape Group ${{ matrix.group_index }}"
+    name: Scrape Noon (slice 3)
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    continue-on-error: true
-    strategy:
-      matrix:
-        group_index: [34, 35, 36, 37, 38, 39, 40, 41, 42]
-      fail-fast: false
-      max-parallel: 20
+    timeout-minutes: 300
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-
+          cache: pip
       - name: Install dependencies
-        run: pip install playwright playwright-stealth
-
-      - name: Cache Playwright browser
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-v1
-
-      - name: Install Playwright browser
-        run: playwright install chromium --with-deps
-        timeout-minutes: 10
-
-      - name: Start virtual display
-        run: |
-          sudo apt-get install -y xvfb > /dev/null 2>&1
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
-
+        run: pip install curl-cffi
       - name: Stagger start
-        run: sleep $((RANDOM % 20 + 5))
-
-      - name: "Scrape Group ${{ matrix.group_index }}"
-        env:
-          DISPLAY: ":99"
-        run: python noon_spider.py --group_index ${{ matrix.group_index }} --limit ${{ github.event.inputs.limit || '99999' }}
-        timeout-minutes: 160
-
+        run: sleep $((RANDOM % 30 + 5))
+      - name: Scrape Noon categories
+        run: |
+          python noon_spider.py \
+            --slice 3 \
+            --total-slices 4 \
+            --limit ${{ github.event.inputs.limit || '99999' }}
+        timeout-minutes: 280
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: "noon-products-${{ matrix.group_index }}"
-          path: "products_${{ matrix.group_index }}.json"
-
-  export:
-    name: Merge & Export CSV
-    runs-on: ubuntu-latest
-    needs: scrape
-    if: always()
-    steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: noon-products-*
-          merge-multiple: true
-
-      - name: Merge JSON -> CSV
-        run: |
-          python - <<'EOF'
-          import json, glob, csv, sys
-          sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
-          merged = []
-          for fname in sorted(glob.glob("products_*.json")):
-              try:
-                  data = json.load(open(fname, encoding="utf-8"))
-                  merged.extend(data)
-                  print(f"{fname}: {len(data)} products")
-              except Exception as e:
-                  print(f"{fname}: ERROR - {e}")
-
-          seen = set()
-          unique = []
-          for p in merged:
-              pid = p.get("product_id", "")
-              if pid and pid not in seen:
-                  seen.add(pid)
-                  unique.append(p)
-              elif not pid:
-                  unique.append(p)
-
-          print(f"\nTotal: {len(merged)}, Unique: {len(unique)}")
-
-          if unique:
-              columns = list(unique[0].keys())
-              with open("noon_products.csv", "w", encoding="utf-8-sig", newline="") as f:
-                  writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
-                  writer.writeheader()
-                  writer.writerows(unique)
-              print("Saved: noon_products.csv")
-          EOF
-
-      - name: Push to master repo
+          name: noon-products
+          path: noon_products_*.json
+          if-no-files-found: warn
+      - name: Convert to CSV and push
+        if: always()
         env:
           MASTER_TOKEN: ${{ secrets.MASTER_REPO_TOKEN }}
+          MASTER_OWNER: ${{ secrets.MASTER_REPO_OWNER }}
         run: |
-          git clone https://${MASTER_TOKEN}@github.com/khaledali45947-dev/scraped-products-master.git master_repo
-          mkdir -p master_repo/data/account6
-          cp noon_products.csv master_repo/data/account6/ 2>/dev/null || true
+          python -c "
+          import json, csv, glob, sys, pathlib
+          sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+          products = []
+          for f in glob.glob('noon_products_*.json'):
+              products.extend(json.loads(pathlib.Path(f).read_text(encoding='utf-8')))
+          print(f'Total: {len(products)} products')
+          if not products: sys.exit(0)
+          cols = list(products[0].keys())
+          with open('noon_products.csv', 'w', encoding='utf-8-sig', newline='') as f:
+              w = csv.DictWriter(f, fieldnames=cols, extrasaction='ignore')
+              w.writeheader()
+              w.writerows(products)
+          print(f'Saved noon_products.csv')
+          "
+          if [ -z "$MASTER_TOKEN" ]; then echo "No token"; exit 0; fi
+          if [ ! -f noon_products.csv ]; then echo "No CSV"; exit 0; fi
+          git clone https://${MASTER_TOKEN}@github.com/${MASTER_OWNER}/scraped-products-master.git master_repo
+          mkdir -p master_repo/data/account6/
+          cp noon_products.csv master_repo/data/account6/noon_products.csv
           cd master_repo
-          git config user.email "scraper-bot@github.com"
-          git config user.name "Scraper Bot"
-          git add data/
-          if ! git diff --staged --quiet; then
-            git commit -m "Update noon from account6 - $(date -u +%Y-%m-%d)"
-            for i in 1 2 3; do
-              git pull --rebase origin main && git push && break || sleep $((RANDOM % 20 + 10))
-            done
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update noon from account6 - $(date +%Y-%m-%d)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push && echo "Pushed OK" && break || sleep $((RANDOM % 10 + 5))
+          done
