@@ -2,8 +2,7 @@ name: Noon Scraper - Account 6 (20 parallel)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * *'
+
 
 jobs:
   scrape:
